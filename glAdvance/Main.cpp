@@ -9,6 +9,11 @@
 #include "Shader.h"
 #include <SOIL.h>
 
+//glm
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/type_ptr.hpp>
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 int main()
 {
@@ -214,10 +219,25 @@ int main()
 		glUniform1i(glGetUniformLocation(shader.program, "texture1"), 1);
 
 		shader.use();
-		
+		GLint transform = glGetUniformLocation(shader.program, "transform");
+		glm::mat4 trans;
+		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+		trans = glm::rotate(trans, glm::radians( (GLfloat)glfwGetTime() * 50.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		/*trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));*/
+		glUniformMatrix4fv(transform, 1, GL_FALSE, glm::value_ptr(trans))
+			;
 		glBindVertexArray(VAO);
 		//glDrawArrays(GL_TRIANGLES, 0, 3);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		
+		//second
+		trans = glm::mat4();
+		trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.0f));
+		GLfloat scaleA = sin(glfwGetTime());
+		trans = glm::scale(trans, glm::vec3(scaleA, scaleA, scaleA));
+		glUniformMatrix4fv(transform, 1, GL_FALSE, glm::value_ptr(trans));
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 		glBindVertexArray(0);
 		//½»»»»º³å
 		glfwSwapBuffers(window);

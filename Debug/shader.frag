@@ -8,5 +8,5 @@ out vec4 color;
  
 void main()
 {
-	color = mix(texture(texture0,  TexCoord), texture(texture1, 1-TexCoord), 0.2) ;
+	color = mix(texture(texture0,  TexCoord), texture(texture1, 1 - TexCoord), 0.2) ;
 }
