@@ -15,9 +15,16 @@
 #include <gtc/type_ptr.hpp>
 int screenWidth = 800;
 int screenHeight = 600;
-
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void coordinate_system(GLFWwindow* window);
+void do_movement();
+void calcFPS(GLFWwindow* window, GLfloat title);
+bool keys[1024];
+GLfloat deltaTime = 0.0f;
+GLfloat lastFram = 0.0f;
 int main()
 {
 	glfwInit();
@@ -61,6 +68,52 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
+	if (action == GLFW_PRESS)
+	{
+		keys[key] = true;
+	}
+	else if (action == GLFW_RELEASE)
+	{
+		keys[key] = false;
+	}
+
+}
+void do_movement()
+{
+	GLfloat cameraSpeed = 0.5f *deltaTime;
+	if (keys[GLFW_KEY_W])
+	{
+		cameraPos += cameraFront * cameraSpeed;
+	}
+	else if (keys[GLFW_KEY_S])
+	{
+		cameraPos -= cameraFront * cameraSpeed;
+	}
+	else if (keys[GLFW_KEY_A])
+	{
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+	else if (keys[GLFW_KEY_D])
+	{
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+}
+void calcFPS(GLFWwindow* window, GLfloat title)
+{
+	static std::string temp = "";
+	static GLfloat framesPerSecond = 0.0f;
+	static GLfloat frames = 0.0f;
+	static GLfloat lastTime = 0.0f;
+	GLfloat currentTime = glfwGetTime();
+	++frames;
+	if (currentTime - lastTime > 1.0f)
+	{
+		framesPerSecond = frames;
+		temp = "fps: " + std::to_string(framesPerSecond);
+		lastTime = currentTime;
+		frames = 0;
+	}
+	glfwSetWindowTitle(window, temp.c_str());
 }
 //7课, 坐标系统
 void coordinate_system(GLFWwindow* window)
@@ -107,6 +160,19 @@ void coordinate_system(GLFWwindow* window)
 		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
 		-0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
 		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f
+	};
+
+	glm::vec3 cubePositions[] = {
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(2.0f, 5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f, 3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f, 2.0f, -2.5f),
+		glm::vec3(1.5f, 0.2f, -1.5f),
+		glm::vec3(-1.3f, 1.0f, -1.5f)
 	};
 
 	//创建顶点缓冲对象
@@ -175,10 +241,18 @@ void coordinate_system(GLFWwindow* window)
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
+
 	while (!glfwWindowShouldClose(window))
 	{
 		//监听事件
 		glfwPollEvents();
+		do_movement();
+
+		GLfloat currentFram = glfwGetTime();
+		deltaTime = currentFram - lastFram;
+		lastFram = currentFram;
+		calcFPS(window, lastFram);
+
 		//渲染指令
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -197,23 +271,40 @@ void coordinate_system(GLFWwindow* window)
 		glUniform1i(glGetUniformLocation(shader.program, "texture1"), 1);
 
 		shader.use();
-		glm::mat4 model;
-		model = glm::rotate(model, glm::radians((GLfloat)glfwGetTime() * 20.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		GLint modelLoc = glGetUniformLocation(shader.program, "model");
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
+		GLint modelLoc = glGetUniformLocation(shader.program, "model");
+
+		//view
 		glm::mat4 view;
-		view = glm::translate(view, glm::vec3(sin((GLfloat)glfwGetTime()), 0.0f, -3.0f));
+		GLfloat radius =10.0f;
+		GLfloat camx = sin(glfwGetTime()) * radius;
+		GLfloat camz = cos(glfwGetTime()) * radius;
+
+		view = glm::lookAt(cameraPos,
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			cameraUp);
+
+		
 		GLint viewLoc = glGetUniformLocation(shader.program, "view");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
+		//projection
 		glm::mat4 projection;
 		projection = glm::perspective(glm::radians(45.0f), (GLfloat)screenWidth / screenHeight, 0.1f, 100.0f);
 		GLint projectionLoc = glGetUniformLocation(shader.program, "projection");
 		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		for (int i = 0; i < 10; ++i)
+		{
+			glm::mat4 model;
+			model = glm::translate(model, cubePositions[i]);
+			GLfloat angle = 20 * i;
+			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+		
 		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glBindVertexArray(0);
