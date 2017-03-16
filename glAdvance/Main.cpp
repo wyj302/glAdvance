@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include <SOIL.h>
 
+#include "Camera.h"
 //glm
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
@@ -19,12 +20,24 @@ glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_callback(GLFWwindow* window, double posx, double posy);
+void scroll_callback(GLFWwindow* window, double offsetx, double offsety);
 void coordinate_system(GLFWwindow* window);
 void do_movement();
 void calcFPS(GLFWwindow* window, GLfloat title);
 bool keys[1024];
 GLfloat deltaTime = 0.0f;
 GLfloat lastFram = 0.0f;
+GLfloat lastX = 400;
+GLfloat lastY = 300;
+GLfloat pitch = 0.0f;
+GLfloat yaw = -90.0f;
+bool firstMouse = true;
+GLfloat fov = 45.0f;
+
+// Camera
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
 int main()
 {
 	glfwInit();
@@ -42,6 +55,9 @@ int main()
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
@@ -78,24 +94,45 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 }
+void mouse_callback(GLFWwindow* window, double posx, double posy)
+{
+	if (firstMouse)
+	{
+		lastX = posx;
+		lastY = posy;
+		firstMouse = false;
+	}
+
+	GLfloat offsetx = posx - lastX;
+	GLfloat offsety = lastY - posy;
+	lastX = posx;
+	lastY = posy;
+
+	camera.ProcessMouseMovement(offsetx, offsety);
+
+}
+void scroll_callback(GLFWwindow* window, double offsetx, double offsety)
+{
+	camera.ProcessMouseScroll(offsety);
+}
 void do_movement()
 {
-	GLfloat cameraSpeed = 0.5f *deltaTime;
+
 	if (keys[GLFW_KEY_W])
 	{
-		cameraPos += cameraFront * cameraSpeed;
+		camera.ProcessKeyboard(FORWARD, deltaTime);
 	}
 	else if (keys[GLFW_KEY_S])
 	{
-		cameraPos -= cameraFront * cameraSpeed;
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
 	}
 	else if (keys[GLFW_KEY_A])
 	{
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.ProcessKeyboard(LEFT, deltaTime);
 	}
 	else if (keys[GLFW_KEY_D])
 	{
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.ProcessKeyboard(RIGHT, deltaTime);
 	}
 }
 void calcFPS(GLFWwindow* window, GLfloat title)
@@ -276,13 +313,7 @@ void coordinate_system(GLFWwindow* window)
 
 		//view
 		glm::mat4 view;
-		GLfloat radius =10.0f;
-		GLfloat camx = sin(glfwGetTime()) * radius;
-		GLfloat camz = cos(glfwGetTime()) * radius;
-
-		view = glm::lookAt(cameraPos,
-			glm::vec3(0.0f, 0.0f, 0.0f),
-			cameraUp);
+		view = camera.GetViewMatrix();
 
 		
 		GLint viewLoc = glGetUniformLocation(shader.program, "view");
@@ -290,7 +321,7 @@ void coordinate_system(GLFWwindow* window)
 
 		//projection
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(45.0f), (GLfloat)screenWidth / screenHeight, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(camera.Zoom), (GLfloat)screenWidth / screenHeight, 0.1f, 100.0f);
 		GLint projectionLoc = glGetUniformLocation(shader.program, "projection");
 		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
