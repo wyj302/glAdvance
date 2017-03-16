@@ -77,6 +77,10 @@
     <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Debug\lamp.frag" />
+    <None Include="..\Debug\lamp.vs" />
+    <None Include="..\Debug\object.frag" />
+    <None Include="..\Debug\object.vs" />
     <None Include="..\Debug\shader.frag" />
     <None Include="..\Debug\shader.vs" />
   </ItemGroup>
