@@ -39,6 +39,8 @@ GLfloat fov = 45.0f;
 // Camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
+GLuint CreateTexture(const char* file);
+
 int main()
 {
 	glfwInit();
@@ -160,47 +162,48 @@ void lighting_system(GLFWwindow* window)
 	glm::vec3 lightPos(1.2f, 1.0f, 2.0f); 
 
 	GLfloat vertices[] = {
-		-0.5f, -0.5f, -0.5f,
-		0.5f, -0.5f, -0.5f,
-		0.5f, 0.5f, -0.5f,
-		0.5f, 0.5f, -0.5f,
-		-0.5f, 0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
+		// Positions           // Normals           // Texture Coords
+		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+		0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+		-0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
 
-		-0.5f, -0.5f, 0.5f,
-		0.5f, -0.5f, 0.5f, 
-		0.5f, 0.5f, 0.5f,  
-		0.5f, 0.5f, 0.5f,  
-		-0.5f, 0.5f, 0.5f, 
-		-0.5f, -0.5f, 0.5f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+		0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
 
-		-0.5f, 0.5f, 0.5f,  
-		-0.5f, 0.5f, -0.5f, 
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, 0.5f, 
-		-0.5f, 0.5f, 0.5f,  
+		-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 
-		0.5f, 0.5f, 0.5f,  
-		0.5f, 0.5f, -0.5f, 
-		0.5f, -0.5f, -0.5f,
-		0.5f, -0.5f, -0.5f,
-		0.5f, -0.5f, 0.5f, 
-		0.5f, 0.5f, 0.5f,  
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 
-		-0.5f, -0.5f, -0.5f,
-		0.5f, -0.5f, -0.5f, 
-		0.5f, -0.5f, 0.5f,  
-		0.5f, -0.5f, 0.5f,  
-		-0.5f, -0.5f, 0.5f, 
-		-0.5f, -0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+		0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
 
-		-0.5f, 0.5f, -0.5f,
-		0.5f, 0.5f, -0.5f, 
-		0.5f, 0.5f, 0.5f,  
-		0.5f, 0.5f, 0.5f,  
-		-0.5f, 0.5f, 0.5f, 
-		-0.5f, 0.5f, -0.5f
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+		0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+		0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
 	};
 	
 	//lamp
@@ -215,9 +218,8 @@ void lighting_system(GLFWwindow* window)
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)* 3, (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)* 8, (GLvoid*)0);
 	glEnableVertexAttribArray(0);
-
 	glBindVertexArray(0);
 
 	//object
@@ -232,13 +234,23 @@ void lighting_system(GLFWwindow* window)
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)* 3, (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)* 8, (GLvoid*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)* 8, (GLvoid*)(sizeof(GLfloat)* 3));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)* 8, (GLvoid*)(sizeof(GLfloat)* 6));
+	glEnableVertexAttribArray(2);
 
 	glBindVertexArray(0);
 
+	GLuint diffuseMap = CreateTexture("container2.png");
+	GLuint specularMap = CreateTexture("container2_specular.png");
+
 	Shader lampShader("lamp.vs", "lamp.frag");
 	Shader objectShader("object.vs", "object.frag");
+	objectShader.use();
+	glUniform1i(glGetUniformLocation(objectShader.program, "material.diffuse"), 0);
+	glUniform1i(glGetUniformLocation(objectShader.program, "material.specular"), 1);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -271,6 +283,8 @@ void lighting_system(GLFWwindow* window)
 
 		
 		glm::mat4 model;
+// 		lightPos.x = sin(glfwGetTime());
+// 		lightPos.z = cos(glfwGetTime());
 		model = glm::translate(model, lightPos);
 		model = glm::scale(model, glm::vec3(0.2f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -281,6 +295,27 @@ void lighting_system(GLFWwindow* window)
 
 		//draw object
 		objectShader.use();
+	
+		GLint lightPosLoc = glGetUniformLocation(objectShader.program, "lightPos");
+		glUniform3f(lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
+		GLint viewPosLoc = glGetUniformLocation(objectShader.program, "viewPos");
+		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
+
+		
+		
+		GLint shininessLoc = glGetUniformLocation(objectShader.program, "material.shininess");
+		
+
+		glUniform1f(shininessLoc, 32.0f);
+
+		GLint lightambientLoc = glGetUniformLocation(objectShader.program, "light.ambient");
+		GLint lightdiffuseLoc = glGetUniformLocation(objectShader.program, "light.diffuse");
+		GLint lightspecularLoc = glGetUniformLocation(objectShader.program, "light.specular");
+
+		glUniform3f(lightambientLoc, 0.2f, 0.2f, 0.2f);
+		glUniform3f(lightdiffuseLoc, 0.5f, 0.5f, 0.5f);
+		glUniform3f(lightspecularLoc, 1.0f, 1.0f, 1.0f);
+
 		modelLoc = glGetUniformLocation(objectShader.program, "model");
 		viewLoc = glGetUniformLocation(objectShader.program, "view");
 		projLoc = glGetUniformLocation(objectShader.program, "projection");
@@ -290,12 +325,16 @@ void lighting_system(GLFWwindow* window)
 
 		model = glm::mat4();
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		GLint objectColor = glGetUniformLocation(objectShader.program, "objectColor");
-		glUniform3f(objectColor, 1.0f, 0.5f, 0.3f);
-		GLint lampColor = glGetUniformLocation(objectShader.program, "lampColor");
-		glUniform3f(lampColor, 1.0f, 1.0f, 1.0f);
+// 		GLint objectColor = glGetUniformLocation(objectShader.program, "objectColor");
+// 		glUniform3f(objectColor, 1.0f, 0.5f, 0.3f);
+// 		GLint lampColor = glGetUniformLocation(objectShader.program, "lampColor");
+// 		glUniform3f(lampColor, 1.0f, 1.0f, 1.0f);
 		glBindVertexArray(objectVAO);
 
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, diffuseMap);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 		//交换缓冲
@@ -494,4 +533,29 @@ void coordinate_system(GLFWwindow* window)
 		//交换缓冲
 
 	}
+}
+
+GLuint CreateTexture(const char* file)
+{
+	//创建纹理对象
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	//纹理采样方式
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//设置纹理过滤方式
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//加载纹理
+	int iwidth, iheight;
+	unsigned char* image = SOIL_load_image(file, &iwidth, &iheight, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, iwidth, iheight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(image);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texture;
 }
