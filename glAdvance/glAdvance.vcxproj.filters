@@ -16,6 +16,9 @@
     <Filter Include="源文件\shaders">
       <UniqueIdentifier>{29a0869e-bd35-429c-a10f-ba14ee4027fa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\math">
+      <UniqueIdentifier>{52860b7c-b39f-48b1-aff6-222490e14d36}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">

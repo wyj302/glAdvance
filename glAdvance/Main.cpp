@@ -10,6 +10,10 @@
 #include <SOIL.h>
 
 #include "Camera.h"
+
+#include <limits>
+#include <iostream>
+
 //glm
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
@@ -35,6 +39,50 @@ GLfloat pitch = 0.0f;
 GLfloat yaw = -90.0f;
 bool firstMouse = true;
 GLfloat fov = 45.0f;
+glm::vec4 min = glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f);
+glm::vec4 max = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f); 
+glm::mat4 projection;
+glm::mat4 view;
+
+glm::vec3 ray;
+
+
+void screenCoordsTo3DCoords(double x, double y);
+
+//----------------------------------------------------------
+//box struct
+struct Box
+{
+	glm::vec3 min;
+	glm::vec3 max;
+}boxes[3];
+//simple Ray struct
+struct Ray
+{
+	glm::vec3 origin, direction;
+	float t;
+	Ray()
+	{
+		t = std::numeric_limits<float>::max();
+		origin = glm::vec3(0);
+		direction = glm::vec3(0);
+	}
+}eyeRay;
+Box box;
+
+//ray Box intersection code
+glm::vec2 intersectBox(const Ray& ray, const Box& cube)
+{
+	glm::vec3 inv_dir = 1.0f / ray.direction;
+	glm::vec3 tMin = (cube.min - ray.origin) * inv_dir;
+	glm::vec3 tMax = (cube.max - ray.origin) * inv_dir;
+	glm::vec3 t1 = glm::min(tMin, tMax);
+	glm::vec3 t2 = glm::max(tMin, tMax);
+	float tNear = glm::max(glm::max(t1.x, t1.y), t1.z);
+	float tFar = glm::min(glm::min(t2.x, t2.y), t2.z);
+	return glm::vec2(tNear, tFar);
+}
+//----------------------------------------------------------
 
 // Camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -60,7 +108,7 @@ int main()
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
@@ -100,6 +148,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 void mouse_callback(GLFWwindow* window, double posx, double posy)
 {
+	screenCoordsTo3DCoords(posx, posy);
+
 	if (firstMouse)
 	{
 		lastX = posx;
@@ -112,7 +162,7 @@ void mouse_callback(GLFWwindow* window, double posx, double posy)
 	lastX = posx;
 	lastY = posy;
 
-	camera.ProcessMouseMovement(offsetx, offsety);
+	//camera.ProcessMouseMovement(offsetx, offsety);
 
 }
 void scroll_callback(GLFWwindow* window, double offsetx, double offsety)
@@ -205,7 +255,20 @@ void lighting_system(GLFWwindow* window)
 		-0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
 		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
 	};
-	
+
+	glm::vec3 cubePositions[] = {
+		glm::vec3(0.0f, 0.0f, 0.0f),
+// 		glm::vec3(2.0f, 5.0f, -15.0f),
+// 		glm::vec3(-1.5f, -2.2f, -2.5f),
+// 		glm::vec3(-3.8f, -2.0f, -12.3f),
+// 		glm::vec3(2.4f, -0.4f, -3.5f),
+// 		glm::vec3(-1.7f, 3.0f, -7.5f),
+// 		glm::vec3(1.3f, -2.0f, -2.5f),
+// 		glm::vec3(1.5f, 2.0f, -2.5f),
+// 		glm::vec3(1.5f, 0.2f, -1.5f),
+// 		glm::vec3(-1.3f, 1.0f, -1.5f)
+	};
+
 	//lamp
 	GLuint lampVBO;
 	glGenBuffers(1, &lampVBO);
@@ -269,9 +332,7 @@ void lighting_system(GLFWwindow* window)
 
 		//draw lamp
 		lampShader.use();
-		glm::mat4 view;
 		view = camera.GetViewMatrix();
-		glm::mat4 projection;
 		projection = glm::perspective(glm::radians(camera.Zoom), (GLfloat)screenWidth / screenHeight, 0.1f, 100.0f);
 
 		GLint modelLoc = glGetUniformLocation(lampShader.program, "model");
@@ -289,7 +350,6 @@ void lighting_system(GLFWwindow* window)
 		model = glm::scale(model, glm::vec3(0.2f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glBindVertexArray(lampVAO);
-
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 
@@ -301,10 +361,7 @@ void lighting_system(GLFWwindow* window)
 		GLint viewPosLoc = glGetUniformLocation(objectShader.program, "viewPos");
 		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
 
-		
-		
 		GLint shininessLoc = glGetUniformLocation(objectShader.program, "material.shininess");
-		
 
 		glUniform1f(shininessLoc, 32.0f);
 
@@ -324,7 +381,15 @@ void lighting_system(GLFWwindow* window)
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 		model = glm::mat4();
+		glm::vec4 worldMin =  model * min;
+		glm::vec4 worldMax = model * max;
+		box.min = glm::vec3(worldMin.x, worldMin.y, worldMin.z);
+		box.max = glm::vec3(worldMax.x, worldMax.y, worldMax.z);
+
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		GLint lightDirPos = glGetUniformLocation(objectShader.program, "light.direction");
+		glUniform3f(lightDirPos, -0.2f, -1.0f, -0.3f);
+
 // 		GLint objectColor = glGetUniformLocation(objectShader.program, "objectColor");
 // 		glUniform3f(objectColor, 1.0f, 0.5f, 0.3f);
 // 		GLint lampColor = glGetUniformLocation(objectShader.program, "lampColor");
@@ -335,7 +400,17 @@ void lighting_system(GLFWwindow* window)
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, specularMap);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+// 		for (GLuint i = 0; i < 10; i++)
+// 		{
+			model = glm::mat4();
+			model = glm::translate(model, cubePositions[0]);
+			//GLfloat angle = 20.0f * i;
+			//model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		//}
+		
 		glBindVertexArray(0);
 		//交换缓冲
 		glfwSwapBuffers(window);
@@ -558,4 +633,41 @@ GLuint CreateTexture(const char* file)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return texture;
+}
+void screenCoordsTo3DCoords(double posx, double posy)
+{
+	float x = (2.0f * posx) / screenWidth - 1.0;
+	float y = 1.0 - (2.0f * posy) / screenHeight;
+	float z = 1.0;// far near -1.0;
+
+	glm::vec3 ray_ndc = glm::vec3(x, y, z);
+
+	glm::vec4 ray_clip = glm::vec4(ray_ndc.x, ray_ndc.y, ray_ndc.z, 1.0);
+	glm::vec4 ray_view = glm::inverse(projection) * ray_clip;
+	glm::vec4 ray_world = glm::inverse(view) * ray_view;
+
+	if (ray_world.w != 0.0f)
+	{
+		ray_world.x /= ray_world.w;
+		ray_world.y /= ray_world.w;
+		ray_world.z /= ray_world.w;
+	}
+
+	glm::vec3 tmpworld = glm::vec3(ray_world.x, ray_world.y, ray_world.z);
+	ray = glm::normalize( tmpworld - camera.Position);
+
+	Ray rayLine;
+	rayLine.direction = ray;
+	
+	glm::vec2 ret = intersectBox(rayLine, box);
+	bool isr = ret.x > ret.y;
+	if (isr)
+	{
+		std::cout << "相交" << std::endl;
+	}
+	else
+	{
+		std::cout << "不相交" << std::endl;
+	}
+	std::cout << ray.x << ", " << ray.y << ", " << ray.z << std::endl;
 }
