@@ -13,8 +13,6 @@
 
 #include <limits>
 #include <iostream>
-#include <GL/GLU.h>
-#include <GL/freeglut.h>
 
 //glm
 #include <glm.hpp>
@@ -35,6 +33,7 @@ void mouse_button_callback(GLFWwindow* window, int b, int action, int);
 void scroll_callback(GLFWwindow* window, double offsetx, double offsety);
 void coordinate_system(GLFWwindow* window);
 void lighting_system(GLFWwindow* window);
+void blending(GLFWwindow* window);
 void do_movement();
 void calcFPS(GLFWwindow* window, GLfloat title);
 bool keys[1024];
@@ -57,39 +56,7 @@ bool drawLine = false;
 void screenCoordsTo3DCoords(double x, double y);
 
 //----------------------------------------------------------
-//box struct
-struct Box
-{
-	glm::vec3 min;
-	glm::vec3 max;
-}boxes[3];
-//simple Ray struct
-struct Ray
-{
-	glm::vec3 origin, direction;
-	float t;
-	Ray()
-	{
-		t = std::numeric_limits<float>::max();
-		origin = glm::vec3(0);
-		direction = glm::vec3(0);
-	}
-}eyeRay;
-Box box;
 AABB3 aabb;
-
-//ray Box intersection code
-glm::vec2 intersectBox(const Ray& ray, const Box& cube)
-{
-	glm::vec3 inv_dir = 1.0f / ray.direction;
-	glm::vec3 tMin = (cube.min - ray.origin) * inv_dir;
-	glm::vec3 tMax = (cube.max - ray.origin) * inv_dir;
-	glm::vec3 t1 = glm::min(tMin, tMax);
-	glm::vec3 t2 = glm::max(tMin, tMax);
-	float tNear = glm::max(glm::max(t1.x, t1.y), t1.z);
-	float tFar = glm::min(glm::min(t2.x, t2.y), t2.z);
-	return glm::vec2(tNear, tFar);
-}
 //----------------------------------------------------------
 
 // Camera
@@ -128,9 +95,9 @@ int main()
 	}
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-	glEnable(GL_STENCIL_TEST);
-	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+// 	glEnable(GL_STENCIL_TEST);
+// 	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+// 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -140,7 +107,12 @@ int main()
 	//7--8
 	//coordinate_system(window);
 	//9 color
-	lighting_system(window);
+	//lighting_system(window);
+
+	//blend
+	blending(window);
+
+
 	glfwTerminate();
 	
 	return 0;
@@ -175,7 +147,7 @@ void mouse_callback(GLFWwindow* window, double posx, double posy)
 	lastX = posx;
 	lastY = posy;
 
-	//camera.ProcessMouseMovement(offsetx, offsety);
+	camera.ProcessMouseMovement(offsetx, offsety);
 
 }
 void scroll_callback(GLFWwindow* window, double offsetx, double offsety)
@@ -456,8 +428,6 @@ void lighting_system(GLFWwindow* window)
 		//交换缓冲
 		glfwSwapBuffers(window);
 	}
-
-
 }
 //7课, 坐标系统
 void coordinate_system(GLFWwindow* window)
@@ -677,19 +647,19 @@ GLuint CreateTexture(const char* file)
 }
 void screenCoordsTo3DCoords(double posx, double posy)
 {
-	GLint  viewport[4];
-	GLdouble modelview[16] = { 0.0f };
-	GLdouble projectionMat[16] = { 0.0f };
-	GLfloat winx = posx;
-	GLfloat winy = screenHeight - posy;
-	GLfloat winz;
-	GLdouble wx, wy, wz;
-
-	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
-	glGetDoublev(GL_PROJECTION_MATRIX, projectionMat);
-	glGetIntegerv(GL_VIEWPORT, viewport);
-	glReadPixels(winx, winy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winz);
-	gluUnProject(winx, winy, winz, modelview, projectionMat, viewport, &wx, &wy, &wz);
+// 	GLint  viewport[4];
+// 	GLdouble modelview[16] = { 0.0f };
+// 	GLdouble projectionMat[16] = { 0.0f };
+// 	GLfloat winx = posx;
+// 	GLfloat winy = screenHeight - posy;
+// 	GLfloat winz;
+// 	GLdouble wx, wy, wz;
+// 
+// 	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+// 	glGetDoublev(GL_PROJECTION_MATRIX, projectionMat);
+// 	glGetIntegerv(GL_VIEWPORT, viewport);
+// 	glReadPixels(winx, winy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winz);
+// 	gluUnProject(winx, winy, winz, modelview, projectionMat, viewport, &wx, &wy, &wz);
 
 	float x = (2.0f * posx) / screenWidth - 1.0;
 	float y = 1.0 - (2.0f * posy) / screenHeight;
@@ -710,9 +680,6 @@ void screenCoordsTo3DCoords(double posx, double posy)
 
 	glm::vec3 tmpworld = glm::vec3(ray_world.x, ray_world.y, ray_world.z);
 	ray = glm::normalize( tmpworld - camera.Position);
-
-	Ray rayLine;
-	rayLine.direction = ray;
 
 	Vector3 origin(0.0f, 0.0f, 3.0f);
 	Vector3 direction(tmpworld.x, tmpworld.y, tmpworld.z);
@@ -736,9 +703,194 @@ void screenCoordsTo3DCoords(double posx, double posy)
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+// 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+// 	{
+// 		std::cout << "clicked" << std::endl;
+// 		screenCoordsTo3DCoords(lastX, lastY);
+// 	}
+}
+
+void blending(GLFWwindow* window)
+{
+	//顶点数据
+	//1 面
+	GLuint planVAO;
+	GLuint planVBO;
+	GLfloat quadVertices[] = {
+		// Positions        // Texture Coords
+		5.0f, -0.5f, 5.0f, 2.0f, 0.0f,
+		-5.0f, -0.5f, 5.0f, 0.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f, 0.0f, 2.0f,
+
+		5.0f, -0.5f, 5.0f, 2.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f, 0.0f, 2.0f,
+		5.0f, -0.5f, -5.0f, 2.0f, 2.0f
+	};
+	// Setup plane VAO
+	glGenVertexArrays(1, &planVAO);
+	glGenBuffers(1, &planVBO);
+	glBindVertexArray(planVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, planVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	//2 box
+	GLuint cubeVAO;
+	GLuint cubeVBO;
+	GLfloat vertices[] = {
+		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+		0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+
+		-0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f
+	};
+	glGenVertexArrays(1, &cubeVAO);
+	glGenBuffers(1, &cubeVBO);
+	// Fill buffer
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	// Link vertex attributes
+	glBindVertexArray(cubeVAO);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	//shader
+	Shader planShader("blending/blending.vs", "blending/blending.frag");
+	//Shader cubeShader("blending/blending.vs", "blending/blending.frag");
+
+	//纹理
+	GLuint planTexture = CreateTexture("floor.jpg");
+	GLuint cubeTexture = CreateTexture("Block5_.jpg");
+	planShader.use();
+
+	//循环
+	while (!glfwWindowShouldClose(window))
 	{
-		std::cout << "clicked" << std::endl;
-		screenCoordsTo3DCoords(lastX, lastY);
+		//检查及调用事件
+		glfwPollEvents();
+		do_movement();
+
+		GLfloat currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFram;
+		lastFram = currentFrame;
+		calcFPS(window, lastFram);
+
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		planShader.use();
+		glm::mat4 model;
+		glm::mat4 view;
+		view = camera.GetViewMatrix();
+		glm::mat4 projection;
+		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.1f, 100.0f);
+
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+		//upsidedown
+		glDisable(GL_CULL_FACE);
+		//cube0
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+		model = glm::rotate(model, 35.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, -1.0f, 1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		//cube1
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+		model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+		model = glm::rotate(model, 35.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, -1.0f, 1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+
+		//启用混合
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//floor
+		model = glm::mat4();
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, planTexture);
+		glBindVertexArray(planVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(0);
+		//禁用混合
+		glDisable(GL_BLEND);
+
+		//cube0
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		//cube1
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+
+
+		glfwSwapBuffers(window);
 	}
+
+	glfwTerminate();
 }

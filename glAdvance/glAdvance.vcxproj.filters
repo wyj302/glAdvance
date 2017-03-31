@@ -19,6 +19,9 @@
     <Filter Include="源文件\math">
       <UniqueIdentifier>{52860b7c-b39f-48b1-aff6-222490e14d36}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\shaders\blending">
+      <UniqueIdentifier>{470627f5-0e57-41cc-a532-a269c9217983}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -27,6 +30,21 @@
     <ClCompile Include="Shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="math\AABB3.cpp">
+      <Filter>源文件\math</Filter>
+    </ClCompile>
+    <ClCompile Include="math\MathUtil.cpp">
+      <Filter>源文件\math</Filter>
+    </ClCompile>
+    <ClCompile Include="math\Matrix.cpp">
+      <Filter>源文件\math</Filter>
+    </ClCompile>
+    <ClCompile Include="math\Plane.cpp">
+      <Filter>源文件\math</Filter>
+    </ClCompile>
+    <ClCompile Include="math\Sphere.cpp">
+      <Filter>源文件\math</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
@@ -34,6 +52,24 @@
     </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="math\AABB3.h">
+      <Filter>源文件\math</Filter>
+    </ClInclude>
+    <ClInclude Include="math\MathUtil.h">
+      <Filter>源文件\math</Filter>
+    </ClInclude>
+    <ClInclude Include="math\Matrix.h">
+      <Filter>源文件\math</Filter>
+    </ClInclude>
+    <ClInclude Include="math\Plane.h">
+      <Filter>源文件\math</Filter>
+    </ClInclude>
+    <ClInclude Include="math\Sphere.h">
+      <Filter>源文件\math</Filter>
+    </ClInclude>
+    <ClInclude Include="math\Vector3.h">
+      <Filter>源文件\math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +90,12 @@
     </None>
     <None Include="..\Debug\object.vs">
       <Filter>源文件\shaders</Filter>
+    </None>
+    <None Include="..\Debug\blending\blending.frag">
+      <Filter>源文件\shaders\blending</Filter>
+    </None>
+    <None Include="..\Debug\blending\blending.vs">
+      <Filter>源文件\shaders\blending</Filter>
     </None>
   </ItemGroup>
 </Project>
