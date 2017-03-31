@@ -13,11 +13,17 @@
 
 #include <limits>
 #include <iostream>
+#include <GL/GLU.h>
+#include <GL/freeglut.h>
 
 //glm
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
+
+//
+#include "math/AABB3.h"
+
 int screenWidth = 800;
 int screenHeight = 600;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -25,6 +31,7 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double posx, double posy);
+void mouse_button_callback(GLFWwindow* window, int b, int action, int);
 void scroll_callback(GLFWwindow* window, double offsetx, double offsety);
 void coordinate_system(GLFWwindow* window);
 void lighting_system(GLFWwindow* window);
@@ -45,7 +52,7 @@ glm::mat4 projection;
 glm::mat4 view;
 
 glm::vec3 ray;
-
+bool drawLine = false;
 
 void screenCoordsTo3DCoords(double x, double y);
 
@@ -69,6 +76,7 @@ struct Ray
 	}
 }eyeRay;
 Box box;
+AABB3 aabb;
 
 //ray Box intersection code
 glm::vec2 intersectBox(const Ray& ray, const Box& cube)
@@ -107,6 +115,8 @@ int main()
 	glfwMakeContextCurrent(window);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	
 	glfwSetScrollCallback(window, scroll_callback);
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -114,9 +124,14 @@ int main()
 	if (glewInit() != GLEW_OK)
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
-		return -1;
+		return -1;	
 	}
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	glEnable(GL_STENCIL_TEST);
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
@@ -148,8 +163,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 void mouse_callback(GLFWwindow* window, double posx, double posy)
 {
-	screenCoordsTo3DCoords(posx, posy);
-
 	if (firstMouse)
 	{
 		lastX = posx;
@@ -311,6 +324,8 @@ void lighting_system(GLFWwindow* window)
 
 	Shader lampShader("lamp.vs", "lamp.frag");
 	Shader objectShader("object.vs", "object.frag");
+	Shader signalColorShader("object.vs", "signalcolor.frag");
+
 	objectShader.use();
 	glUniform1i(glGetUniformLocation(objectShader.program, "material.diffuse"), 0);
 	glUniform1i(glGetUniformLocation(objectShader.program, "material.specular"), 1);
@@ -330,6 +345,9 @@ void lighting_system(GLFWwindow* window)
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+		glStencilMask(0x00);		
+		
 		//draw lamp
 		lampShader.use();
 		view = camera.GetViewMatrix();
@@ -341,7 +359,6 @@ void lighting_system(GLFWwindow* window)
 
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
 		
 		glm::mat4 model;
 // 		lightPos.x = sin(glfwGetTime());
@@ -353,6 +370,10 @@ void lighting_system(GLFWwindow* window)
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 
+
+		glStencilFunc(GL_ALWAYS, 1, 0xFF); 
+		glStencilMask(0xFF);
+	
 		//draw object
 		objectShader.use();
 	
@@ -362,7 +383,6 @@ void lighting_system(GLFWwindow* window)
 		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
 
 		GLint shininessLoc = glGetUniformLocation(objectShader.program, "material.shininess");
-
 		glUniform1f(shininessLoc, 32.0f);
 
 		GLint lightambientLoc = glGetUniformLocation(objectShader.program, "light.ambient");
@@ -381,37 +401,58 @@ void lighting_system(GLFWwindow* window)
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 		model = glm::mat4();
-		glm::vec4 worldMin =  model * min;
-		glm::vec4 worldMax = model * max;
-		box.min = glm::vec3(worldMin.x, worldMin.y, worldMin.z);
-		box.max = glm::vec3(worldMax.x, worldMax.y, worldMax.z);
-
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		GLint lightDirPos = glGetUniformLocation(objectShader.program, "light.direction");
-		glUniform3f(lightDirPos, -0.2f, -1.0f, -0.3f);
-
-// 		GLint objectColor = glGetUniformLocation(objectShader.program, "objectColor");
-// 		glUniform3f(objectColor, 1.0f, 0.5f, 0.3f);
-// 		GLint lampColor = glGetUniformLocation(objectShader.program, "lampColor");
-// 		glUniform3f(lampColor, 1.0f, 1.0f, 1.0f);
-		glBindVertexArray(objectVAO);
+		glUniform3f(lightDirPos, -0.2f, -1.0f, -0.3f);		
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, specularMap);
 
-// 		for (GLuint i = 0; i < 10; i++)
-// 		{
+		model = glm::mat4();
+		model = glm::translate(model, cubePositions[0]);
+		model = glm::rotate(model, 45.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+			
+		glm::vec4 worldMin = model * min;
+		glm::vec4 worldMax = model * max;
+		aabb.min = Vector3(worldMin.x, worldMin.y, worldMin.z);
+		aabb.max = Vector3(worldMax.x, worldMax.y, worldMax.z);
+
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+		glBindVertexArray(objectVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);		
+		glBindVertexArray(0);
+
+		if (drawLine)
+		{
+			glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+			glStencilMask(0x00);
+			glDisable(GL_DEPTH_TEST);
+			signalColorShader.use();
+
+			modelLoc = glGetUniformLocation(signalColorShader.program, "model");
+			viewLoc = glGetUniformLocation(signalColorShader.program, "view");
+			projLoc = glGetUniformLocation(signalColorShader.program, "projection");
+
+			glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+			glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
 			model = glm::mat4();
 			model = glm::translate(model, cubePositions[0]);
-			//GLfloat angle = 20.0f * i;
-			//model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+			model = glm::rotate(model, 45.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+			model = glm::scale(model, glm::vec3(1.1f));
 			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+			glBindVertexArray(objectVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-		//}
+			glBindVertexArray(0);
+
+			glStencilMask(0xFF);
+			glEnable(GL_DEPTH_TEST);
+		}		
 		
-		glBindVertexArray(0);
 		//交换缓冲
 		glfwSwapBuffers(window);
 	}
@@ -636,10 +677,24 @@ GLuint CreateTexture(const char* file)
 }
 void screenCoordsTo3DCoords(double posx, double posy)
 {
+	GLint  viewport[4];
+	GLdouble modelview[16] = { 0.0f };
+	GLdouble projectionMat[16] = { 0.0f };
+	GLfloat winx = posx;
+	GLfloat winy = screenHeight - posy;
+	GLfloat winz;
+	GLdouble wx, wy, wz;
+
+	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+	glGetDoublev(GL_PROJECTION_MATRIX, projectionMat);
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glReadPixels(winx, winy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winz);
+	gluUnProject(winx, winy, winz, modelview, projectionMat, viewport, &wx, &wy, &wz);
+
 	float x = (2.0f * posx) / screenWidth - 1.0;
 	float y = 1.0 - (2.0f * posy) / screenHeight;
 	float z = 1.0;// far near -1.0;
-
+	
 	glm::vec3 ray_ndc = glm::vec3(x, y, z);
 
 	glm::vec4 ray_clip = glm::vec4(ray_ndc.x, ray_ndc.y, ray_ndc.z, 1.0);
@@ -658,16 +713,32 @@ void screenCoordsTo3DCoords(double posx, double posy)
 
 	Ray rayLine;
 	rayLine.direction = ray;
+
+	Vector3 origin(0.0f, 0.0f, 3.0f);
+	Vector3 direction(tmpworld.x, tmpworld.y, tmpworld.z);
+	Vector3 returnNormal;
+
+	float rets = aabb.RayIntersect(origin, direction, &returnNormal);
 	
-	glm::vec2 ret = intersectBox(rayLine, box);
-	bool isr = ret.x > ret.y;
-	if (isr)
+	std::cout << rets << std::endl;
+	if (rets > 1.0f)
 	{
-		std::cout << "相交" << std::endl;
+		std::cout << "不相交" << std::endl;
+		drawLine = false;
 	}
 	else
 	{
-		std::cout << "不相交" << std::endl;
+		drawLine = true;
+		std::cout << "相交" << std::endl;
 	}
-	std::cout << ray.x << ", " << ray.y << ", " << ray.z << std::endl;
+
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	{
+		std::cout << "clicked" << std::endl;
+		screenCoordsTo3DCoords(lastX, lastY);
+	}
 }

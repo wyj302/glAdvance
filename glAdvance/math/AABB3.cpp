@@ -43,7 +43,8 @@
 // Bit 0 selects min.x vs. max.x                +Z
 // Bit 1 selects min.y vs. max.y
 // Bit 2 selects min.z vs. max.z
-
+//-------------------------------------------------------------------------------
+const float NO_INTERSECTION = 1e30f;
 //-------------------------------------------------------------------------------
 // 获取盒子的一个顶点
 //-------------------------------------------------------------------------------
@@ -482,7 +483,191 @@ bool AABB3::IntersectOBB(const Vector3 &bRadii, const CMatrix44F &mToA) const
 
 	return true;
 }
+//---------------------------------------------------------------------------
+// Parametric intersection with a ray.  Returns parametric point
+// of intsersection in range 01 or a really big number (>1) if no
+// intersection.
+//
+// From "Fast Ray-Box Intersection," by Woo in Graphics Gems I, page 395.
+//
+// See 12.9.11
+//---------------------------------------------------------------------------
+float AABB3::RayIntersect(const Vector3& ray_org, // origin of the ray
+	const Vector3& ray_delta,        // length and direction of the ray
+	Vector3* return_normal) const    // optionally, the normal is returned
+{
+	// Check for point inside box, trivial reject, and determine parametric distance to each front face.
+	bool inside = true;
 
+	float xt, xn = 0.0f;
+
+	if (ray_org.x < min.x)
+	{
+		xt = min.x - ray_org.x;
+		if (xt > ray_delta.x)
+			return NO_INTERSECTION;
+
+		xt /= ray_delta.x;
+		inside = false;
+		xn = -1.0f;
+	}
+	else if (ray_org.x > max.x)
+	{
+		xt = max.x - ray_org.x;
+		if (xt < ray_delta.x)
+			return NO_INTERSECTION;
+
+		xt /= ray_delta.x;
+		inside = false;
+		xn = 1.0f;
+	}
+	else
+		xt = -1.0f;
+
+	float yt, yn = 0.0f;
+
+	if (ray_org.y < min.y)
+	{
+		yt = min.y - ray_org.y;
+		if (yt > ray_delta.y)
+			return NO_INTERSECTION;
+
+		yt /= ray_delta.y;
+		inside = false;
+		yn = -1.0f;
+	}
+	else if (ray_org.y > max.y)
+	{
+		yt = max.y - ray_org.y;
+		if (yt < ray_delta.y)
+			return NO_INTERSECTION;
+
+		yt /= ray_delta.y;
+		inside = false;
+		yn = 1.0f;
+	}
+	else
+		yt = -1.0f;
+
+	float zt, zn = 0.0f;
+
+	if (ray_org.z < min.z)
+	{
+		zt = min.z - ray_org.z;
+		if (zt > ray_delta.z)
+			return NO_INTERSECTION;
+
+		zt /= ray_delta.z;
+		inside = false;
+		zn = -1.0f;
+	}
+	else if (ray_org.z > max.z)
+	{
+		zt = max.z - ray_org.z;
+		if (zt < ray_delta.z)
+			return NO_INTERSECTION;
+
+		zt /= ray_delta.z;
+		inside = false;
+		zn = 1.0f;
+	}
+	else
+		zt = -1.0f;
+
+	// Inside box?
+	if (inside)
+	{
+		if (return_normal != NULL)
+		{
+			*return_normal = -ray_delta;
+			return_normal->Normalize();
+		}
+
+		return 0.0f;
+	}
+
+	// Select farthest plane - this is the plane of intersection.
+
+	int which = 0;
+	float t = xt;
+
+	if (yt > t)
+	{
+		which = 1;
+		t = yt;
+	}
+
+	if (zt > t)
+	{
+		which = 2;
+		t = zt;
+	}
+
+	switch (which)
+	{
+	case 0: // intersect with yz plane
+	{
+		float y = ray_org.y + ray_delta.y * t;
+
+		if (y < min.y || y > max.y)
+			return NO_INTERSECTION;
+
+		float z = ray_org.z + ray_delta.z * t;
+		if (z < min.z || z > max.z)
+			return NO_INTERSECTION;
+
+		if (return_normal != NULL)
+		{
+			return_normal->x = xn;
+			return_normal->y = 0.0f;
+			return_normal->z = 0.0f;
+		}
+	}
+	break;
+
+	case 1: // intersect with xz plane
+	{
+		float x = ray_org.x + ray_delta.x * t;
+		if (x < min.x || x > max.x)
+			return NO_INTERSECTION;
+
+		float z = ray_org.z + ray_delta.z * t;
+		if (z < min.z || z > max.z)
+			return NO_INTERSECTION;
+
+		if (return_normal != NULL)
+		{
+			return_normal->x = 0.0f;
+			return_normal->y = yn;
+			return_normal->z = 0.0f;
+		}
+
+	}
+	break;
+
+	case 2: // intersect with xy plane
+	{
+		float x = ray_org.x + ray_delta.x * t;
+		if (x < min.x || x > max.x)
+			return NO_INTERSECTION;
+
+		float y = ray_org.y + ray_delta.y * t;
+		if (y < min.y || y > max.y)
+			return NO_INTERSECTION;
+
+		if (return_normal != NULL)
+		{
+			return_normal->x = 0.0f;
+			return_normal->y = 0.0f;
+			return_normal->z = zn;
+		}
+	}
+	break;
+	}
+
+	// Return parametric point of intersection
+	return t;
+}
 //-------------------------------------------------------------------------------
 // 判断两个盒子是否重叠了，还可以通过参数返回重叠部分。
 //-------------------------------------------------------------------------------

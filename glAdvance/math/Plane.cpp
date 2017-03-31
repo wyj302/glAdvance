@@ -90,23 +90,23 @@ float PlaneDotCoord(const CPlane *pP, const Vector3 *pV)
 //-------------------------------------------------------------------------------
 // 从点和法线构造一个平面对象
 //-------------------------------------------------------------------------------
-CPlane *PlaneFromPointNormal(CPlane *pOut, const Vector3 *pPoint, const Vector3 *pNormal)
+CPlane* PlaneFromPointNormal(CPlane *pOut, const Vector3 *pPoint, const Vector3 *pNormal)
 {
-	return NULL;
+	return nullptr;
 }
 
 //-------------------------------------------------------------------------------
 // 根据平面上已知的3点来求取平面
 //-------------------------------------------------------------------------------
-CPlane *PlaneFromPoints(CPlane *pOut, const Vector3 *pV1, const Vector3 *pV2, const Vector3 *pV3)
+CPlane* PlaneFromPoints(CPlane *pOut, const Vector3 *pV1, const Vector3 *pV2, const Vector3 *pV3)
 {
-	return NULL;
+	return nullptr;
 }
 
 //-------------------------------------------------------------------------------
 // 平面的规格化
 //-------------------------------------------------------------------------------
-CPlane *PlaneNormalize(CPlane *pOut, const CPlane *pP)
+CPlane* PlaneNormalize(CPlane *pOut, const CPlane *pP)
 {
 	float magnitude = (float)sqrt(pP->a * pP->a + pP->b * pP->b + pP->c * pP->c);
 	pOut->a = pP->a / magnitude;
@@ -120,8 +120,8 @@ CPlane *PlaneNormalize(CPlane *pOut, const CPlane *pP)
 //-------------------------------------------------------------------------------
 // 平面的变换
 //-------------------------------------------------------------------------------
-CPlane *PlaneTransform(CPlane *pOut, const CPlane *pP, const CMatrix44F *pM)
+CPlane* PlaneTransform(CPlane *pOut, const CPlane *pP, const CMatrix44F *pM)
 {
-	return NULL;
+	return nullptr;
 }
 
