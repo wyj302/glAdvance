@@ -34,6 +34,8 @@ void scroll_callback(GLFWwindow* window, double offsetx, double offsety);
 void coordinate_system(GLFWwindow* window);
 void lighting_system(GLFWwindow* window);
 void blending(GLFWwindow* window);
+void framebuffer(GLFWwindow* window);
+
 void do_movement();
 void calcFPS(GLFWwindow* window, GLfloat title);
 bool keys[1024];
@@ -62,7 +64,7 @@ AABB3 aabb;
 // Camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
-GLuint CreateTexture(const char* file);
+GLuint CreateTexture(const char* file, bool alpha = false);
 
 int main()
 {
@@ -93,8 +95,9 @@ int main()
 		std::cout << "Failed to initialize GLEW" << std::endl;
 		return -1;	
 	}
-	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+
 // 	glEnable(GL_STENCIL_TEST);
 // 	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 // 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -108,10 +111,11 @@ int main()
 	//coordinate_system(window);
 	//9 color
 	//lighting_system(window);
+	//10 blend
+	//blending(window);
 
-	//blend
-	blending(window);
-
+	//11 framebuffer
+	framebuffer(window);
 
 	glfwTerminate();
 	
@@ -621,7 +625,7 @@ void coordinate_system(GLFWwindow* window)
 	}
 }
 
-GLuint CreateTexture(const char* file)
+GLuint CreateTexture(const char* file, bool alpha)
 {
 	//创建纹理对象
 	GLuint texture;
@@ -637,8 +641,8 @@ GLuint CreateTexture(const char* file)
 
 	//加载纹理
 	int iwidth, iheight;
-	unsigned char* image = SOIL_load_image(file, &iwidth, &iheight, 0, SOIL_LOAD_RGB);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, iwidth, iheight, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	unsigned char* image = SOIL_load_image(file, &iwidth, &iheight, 0, alpha ? SOIL_LOAD_RGBA : SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, alpha ? GL_RGBA : GL_RGB, iwidth, iheight, 0, alpha ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, image);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -712,6 +716,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void blending(GLFWwindow* window)
 {
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	//顶点数据
 	//1 面
 	GLuint planVAO;
@@ -785,6 +792,7 @@ void blending(GLFWwindow* window)
 		-0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
 		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f
 	};
+
 	glGenVertexArrays(1, &cubeVAO);
 	glGenBuffers(1, &cubeVBO);
 	// Fill buffer
@@ -799,14 +807,70 @@ void blending(GLFWwindow* window)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
+	//
+	GLfloat transparentVertices[] = {
+		// Positions        
+		0.0f, 0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f, 1.0f,
+		1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
+
+		0.0f, 0.5f, 0.0f, 0.0f, 0.0f,
+		1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
+		1.0f, 0.5f, 0.0f, 1.0f, 0.0f
+	};
+	GLuint tranVAO;
+	GLuint tranVBO;
+	glGenVertexArrays(1, &tranVAO);
+	glGenBuffers(1, &tranVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, tranVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
+
+	glBindVertexArray(tranVAO);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glBindVertexArray(0);
+
 	//shader
 	Shader planShader("blending/blending.vs", "blending/blending.frag");
 	//Shader cubeShader("blending/blending.vs", "blending/blending.frag");
 
 	//纹理
-	GLuint planTexture = CreateTexture("floor.jpg");
-	GLuint cubeTexture = CreateTexture("Block5_.jpg");
+	GLuint planTexture = CreateTexture("floor.png", true);
+	GLuint cubeTexture = CreateTexture("Block5.png", true);
+	GLuint transTexture = CreateTexture("blending_transparent_window.png", true);
+
 	planShader.use();
+
+	std::vector<glm::vec3> windows;
+	windows.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+	windows.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+	windows.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+	windows.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+	windows.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+
+	//fbo
+	GLuint fbo;
+	glGenFramebuffers(1, &fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+	//rbo
+	GLuint rbo;
+	glGenRenderbuffers(1, &rbo);
+	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+	//创建深度和模板缓冲对象
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+	//为渲染缓冲分配内存后解绑渲染缓冲
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	//将渲染缓冲对象附加到帧缓冲深度和模板附件上
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER, rbo);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		std::cout << "Framebuffer is not complete!" << std::endl;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//循环
 	while (!glfwWindowShouldClose(window))
@@ -829,38 +893,44 @@ void blending(GLFWwindow* window)
 		view = camera.GetViewMatrix();
 		glm::mat4 projection;
 		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.1f, 100.0f);
-
+		
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));		
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-		//upsidedown
-		glDisable(GL_CULL_FACE);
-		//cube0
-		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-		model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
-		model = glm::rotate(model, 35.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(1.0f, -1.0f, 1.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		//cube1
-		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-		model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
-		model = glm::rotate(model, 35.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(1.0f, -1.0f, 1.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		glBindVertexArray(0);
+// 		view = glm::scale(view, glm::vec3(1.0f, -1.0f, 1.0f));
+// 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
+		//upside down
+// 		glDisable(GL_CULL_FACE);
+// 		//cube0
+// 		model = glm::mat4();
+// 		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+// 		model = glm::translate(model, glm::vec3(0.0f, 1.0f, 0.0f));
+// 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+// 		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+// 		glBindVertexArray(cubeVAO);
+// 		glDrawArrays(GL_TRIANGLES, 0, 36);
+// 
+// 		//cube1
+// 		model = glm::mat4();
+// 		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+// 		model = glm::translate(model, glm::vec3(0.0f, 1.0f, 0.0f));
+// 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+// 		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+// 		glBindVertexArray(cubeVAO);
+// 		glDrawArrays(GL_TRIANGLES, 0, 36);
+// 		glBindVertexArray(0);
+
+		
 		//启用混合
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		
+		view = camera.GetViewMatrix();
+		view = glm::scale(view, glm::vec3(1.0f, 1.0f, 1.0f));
+ 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
 		//floor
 		model = glm::mat4();
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -868,9 +938,10 @@ void blending(GLFWwindow* window)
 		glBindVertexArray(planVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindVertexArray(0);
-		//禁用混合
-		glDisable(GL_BLEND);
 
+		//关闭混合
+		glDisable(GL_BLEND);
+		
 		//cube0
 		model = glm::mat4();
 		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
@@ -878,7 +949,6 @@ void blending(GLFWwindow* window)
 		glBindTexture(GL_TEXTURE_2D, cubeTexture);
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-
 		//cube1
 		model = glm::mat4();
 		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
@@ -889,8 +959,253 @@ void blending(GLFWwindow* window)
 		glBindVertexArray(0);
 
 
+// 		//window
+// 		glBindTexture(GL_TEXTURE_2D, transTexture);
+// 		glBindVertexArray(tranVAO);
+// 		for (auto &x : windows)
+// 		{
+// 			model = glm::mat4();
+// 			model = glm::translate(model, x);
+// 			glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+// 			glDrawArrays(GL_TRIANGLES, 0, 6);
+// 		}
+// 		glBindVertexArray(0);
+
 		glfwSwapBuffers(window);
 	}
+
+	glfwTerminate();
+}
+void framebuffer(GLFWwindow* window)
+{
+	GLfloat screenVertices[] = {
+		// Positions   // TexCoords
+		-1.0f, 1.0f, 0.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f, 0.0f,
+		1.0f, -1.0f, 1.0f, 0.0f,
+
+		-1.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, -1.0f, 1.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 1.0f
+	};
+
+	GLuint screenVAO, screenVBO;
+	glGenVertexArrays(1, &screenVAO);
+	glGenBuffers(1, &screenVBO);
+
+	glBindVertexArray(screenVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, screenVBO);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(screenVertices), &screenVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
+	
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	//顶点数据
+	//1 面
+	GLuint planVAO;
+	GLuint planVBO;
+	GLfloat quadVertices[] = {
+		// Positions        // Texture Coords
+		5.0f, -0.5f, 5.0f, 2.0f, 0.0f,
+		-5.0f, -0.5f, 5.0f, 0.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f, 0.0f, 2.0f,
+
+		5.0f, -0.5f, 5.0f, 2.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f, 0.0f, 2.0f,
+		5.0f, -0.5f, -5.0f, 2.0f, 2.0f
+	};
+	// Setup plane VAO
+	glGenVertexArrays(1, &planVAO);
+	glGenBuffers(1, &planVBO);
+	glBindVertexArray(planVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, planVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	//2 box
+	GLuint cubeVAO;
+	GLuint cubeVBO;
+	GLfloat vertices[] = {
+		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+		0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+
+		-0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+		-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+		0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+		-0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+		-0.5f, 0.5f, -0.5f, 0.0f, 1.0f
+	};
+
+	glGenVertexArrays(1, &cubeVAO);
+	glGenBuffers(1, &cubeVBO);
+	// Fill buffer
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	// Link vertex attributes
+	glBindVertexArray(cubeVAO);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+
+	//shader
+	Shader planShader("blending/blending.vs", "blending/blending.frag");
+	Shader screenShader("framebuffer/framebuffer.vs", "framebuffer/framebuffer.frag");
+
+	//纹理
+	GLuint planTexture = CreateTexture("floor.png", true);
+	GLuint cubeTexture = CreateTexture("Block5.png", true);
+	GLuint transTexture = CreateTexture("blending_transparent_window.png", true);
+
+	//planShader.use();
+
+	//fbo
+	GLuint fbo;
+	glGenFramebuffers(1, &fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+	//color buffer texture
+	GLuint textureColorbuffer;
+	glGenTextures(1, &textureColorbuffer);
+	glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	//
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
+	//rbo
+	GLuint rbo;
+	glGenRenderbuffers(1, &rbo);
+	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+	//创建深度和模板缓冲对象
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+	//为渲染缓冲分配内存后解绑渲染缓冲
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	//将渲染缓冲对象附加到帧缓冲深度和模板附件上
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER, rbo);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		std::cout << "Framebuffer is not complete!" << std::endl;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	//循环
+	while (!glfwWindowShouldClose(window))
+	{
+		//检查及调用事件
+		glfwPollEvents();
+		do_movement();
+
+		GLfloat currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFram;
+		lastFram = currentFrame;
+		calcFPS(window, lastFram);
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+
+		planShader.use();
+		glm::mat4 model;
+		glm::mat4 view;
+		view = camera.GetViewMatrix();
+		glm::mat4 projection;
+		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.1f, 100.0f);
+
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+		//floor
+		model = glm::mat4();
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, planTexture);
+		glBindVertexArray(planVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(0);
+
+		//cubes
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);		
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+
+		//Second pass
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+
+		screenShader.use();
+		glBindVertexArray(screenVAO);
+		glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(0);
+
+		glfwSwapBuffers(window);
+	}
+
+	// Clean up
+	glDeleteFramebuffers(1, &fbo);
 
 	glfwTerminate();
 }

@@ -20,7 +20,10 @@
       <UniqueIdentifier>{52860b7c-b39f-48b1-aff6-222490e14d36}</UniqueIdentifier>
     </Filter>
     <Filter Include="源文件\shaders\blending">
-      <UniqueIdentifier>{470627f5-0e57-41cc-a532-a269c9217983}</UniqueIdentifier>
+      <UniqueIdentifier>{b15ddc72-a4a8-4b5f-9920-fc8617fad818}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\shaders\framebuffer">
+      <UniqueIdentifier>{44a338e2-30e7-4e9f-863c-a0febc0916d6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -91,11 +94,20 @@
     <None Include="..\Debug\object.vs">
       <Filter>源文件\shaders</Filter>
     </None>
+    <None Include="..\Debug\signalcolor.frag">
+      <Filter>源文件\shaders</Filter>
+    </None>
     <None Include="..\Debug\blending\blending.frag">
       <Filter>源文件\shaders\blending</Filter>
     </None>
     <None Include="..\Debug\blending\blending.vs">
       <Filter>源文件\shaders\blending</Filter>
+    </None>
+    <None Include="..\Debug\framebuffer\framebuffer.frag">
+      <Filter>源文件\shaders\framebuffer</Filter>
+    </None>
+    <None Include="..\Debug\framebuffer\framebuffer.vs">
+      <Filter>源文件\shaders\framebuffer</Filter>
     </None>
   </ItemGroup>
 </Project>

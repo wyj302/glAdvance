@@ -44,13 +44,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>H:\opengl\glew\include;H:\opengl\glfw\include;H:\opengl\soil\Simple OpenGL Image Library\src;H:\opengl\glm-master\glm-master\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\vendor\glew\include;..\..\vendor\glfw\include;..\..\vendor\soil\Simple OpenGL Image Library\src;..\..\vendor\glm-master\glm-master\glm;H:\workspace\openglvendor\bluebook\OpenGL src\freeglut-2.6.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>H:\opengl\glew\lib;H:\opengl\glfw\lib;H:\opengl\soil\Simple OpenGL Image Library\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glew32s.lib;SOIL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\vendor\glew\lib;..\..\vendor\glfw\lib;..\..\vendor\soil\Simple OpenGL Image Library\lib;H:\workspace\openglvendor\bluebook\OpenGL src\freeglut-2.6.0\VisualStudio2008Static\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glew32s.lib;SOIL.lib;freeglut_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>LIBC.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -70,19 +70,35 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="math\AABB3.cpp" />
+    <ClCompile Include="math\MathUtil.cpp" />
+    <ClCompile Include="math\Matrix.cpp" />
+    <ClCompile Include="math\Plane.cpp" />
+    <ClCompile Include="math\Sphere.cpp" />
     <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="math\AABB3.h" />
+    <ClInclude Include="math\MathUtil.h" />
+    <ClInclude Include="math\Matrix.h" />
+    <ClInclude Include="math\Plane.h" />
+    <ClInclude Include="math\Sphere.h" />
+    <ClInclude Include="math\Vector3.h" />
     <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Debug\blending\blending.frag" />
+    <None Include="..\Debug\blending\blending.vs" />
+    <None Include="..\Debug\framebuffer\framebuffer.frag" />
+    <None Include="..\Debug\framebuffer\framebuffer.vs" />
     <None Include="..\Debug\lamp.frag" />
     <None Include="..\Debug\lamp.vs" />
     <None Include="..\Debug\object.frag" />
     <None Include="..\Debug\object.vs" />
     <None Include="..\Debug\shader.frag" />
     <None Include="..\Debug\shader.vs" />
+    <None Include="..\Debug\signalcolor.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
