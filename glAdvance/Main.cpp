@@ -35,6 +35,7 @@ void coordinate_system(GLFWwindow* window);
 void lighting_system(GLFWwindow* window);
 void blending(GLFWwindow* window);
 void framebuffer(GLFWwindow* window);
+GLuint generateAttachmentTexture(GLboolean depth, GLboolean stencil);
 
 void do_movement();
 void calcFPS(GLFWwindow* window, GLfloat title);
@@ -68,6 +69,7 @@ GLuint CreateTexture(const char* file, bool alpha = false);
 
 int main()
 {
+
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -164,6 +166,7 @@ void do_movement()
 	if (keys[GLFW_KEY_W])
 	{
 		camera.ProcessKeyboard(FORWARD, deltaTime);
+		//GLuint tex_2d = SOIL_save_screenshot("screenshot.bmp", SOIL_SAVE_TYPE_BMP, 0, 0, 800, 600);
 	}
 	else if (keys[GLFW_KEY_S])
 	{
@@ -1099,8 +1102,8 @@ void framebuffer(GLFWwindow* window)
 	Shader screenShader("framebuffer/framebuffer.vs", "framebuffer/framebuffer.frag");
 
 	//纹理
-	GLuint planTexture = CreateTexture("floor.png", true);
-	GLuint cubeTexture = CreateTexture("Block5.png", true);
+	GLuint planTexture = CreateTexture("metal.png");
+	GLuint cubeTexture = CreateTexture("container.jpg");
 	GLuint transTexture = CreateTexture("blending_transparent_window.png", true);
 
 	//planShader.use();
@@ -1111,15 +1114,7 @@ void framebuffer(GLFWwindow* window)
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
 	//color buffer texture
-	GLuint textureColorbuffer;
-	glGenTextures(1, &textureColorbuffer);
-	glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	//
+	GLuint textureColorbuffer = generateAttachmentTexture(false, false);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
 
 	//rbo
@@ -1132,7 +1127,7 @@ void framebuffer(GLFWwindow* window)
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	//将渲染缓冲对象附加到帧缓冲深度和模板附件上
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER, rbo);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		std::cout << "Framebuffer is not complete!" << std::endl;
@@ -1152,52 +1147,82 @@ void framebuffer(GLFWwindow* window)
 		lastFram = currentFrame;
 		calcFPS(window, lastFram);
 		
+
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		// Clear all attached buffers        
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // We're not using stencil buffer so why bother with clearing?
 
-		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
-
+		// Set uniforms
 		planShader.use();
 		glm::mat4 model;
-		glm::mat4 view;
-		view = camera.GetViewMatrix();
-		glm::mat4 projection;
-		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.1f, 100.0f);
-
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		camera.Yaw += 180.0f; // Turn the camera's yaw 180 degrees around
+		camera.Pitch += 180.0f; // Turn the camera's pitch 180 degrees around
+		camera.ProcessMouseMovement(0, 0,  false); // Call this to make sure it updates its camera vectors (should probably create an update function ;)), Note that we removed the pitch constrains for this specific case in the camera class via a boolean (otherwise we can't reverse camera's pitch values)
+		glm::mat4 view = camera.GetViewMatrix();
+		camera.Yaw -= 180.0f; // Reset it back to what it was
+		camera.Pitch -= 180.0f;
+		camera.ProcessMouseMovement(0, 0); // Pitch constraint boolean is set to true as default.
+		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-		//floor
+		// Floor
+		glBindVertexArray(planVAO);
+		glBindTexture(GL_TEXTURE_2D, planTexture);
 		model = glm::mat4();
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glBindTexture(GL_TEXTURE_2D, planTexture);
-		glBindVertexArray(planVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindVertexArray(0);
-
-		//cubes
+		// Cubes
+		glBindVertexArray(cubeVAO);
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 		model = glm::mat4();
 		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);		
-		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 
-		//Second pass
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glDisable(GL_DEPTH_TEST);
+		// Clear all attached buffers
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // We're not using stencil buffer so why bother with clearing?
 
+		// Reset the camera uniform to its normal orientation
+		view = camera.GetViewMatrix();
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+		// Floor
+		glBindVertexArray(planVAO);
+		glBindTexture(GL_TEXTURE_2D, planTexture);
+		model = glm::mat4();
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(0);
+		// Cubes
+		glBindVertexArray(cubeVAO);
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+
+		/////////////////////////////////////////////////////
+		// Now also draw the mirror quad with screen texture
+		// //////////////////////////////////////////////////
+		glDisable(GL_DEPTH_TEST); // We disable depth information so the mirror quad is always rendered on top
+		// Draw mirror
 		screenShader.use();
 		glBindVertexArray(screenVAO);
-		glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+		glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// Use the color attachment texture as the texture of the quad plane
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindVertexArray(0);
 
@@ -1207,5 +1232,30 @@ void framebuffer(GLFWwindow* window)
 	// Clean up
 	glDeleteFramebuffers(1, &fbo);
 
-	glfwTerminate();
+}
+GLuint generateAttachmentTexture(GLboolean depth, GLboolean stencil)
+{
+	// What enum to use?
+	GLenum attachment_type;
+	if (!depth && !stencil)
+		attachment_type = GL_RGB;
+	else if (depth && !stencil)
+		attachment_type = GL_DEPTH_COMPONENT;
+	else if (!depth && stencil)
+		attachment_type = GL_STENCIL_INDEX;
+
+	//Generate texture ID and load texture data 
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	if (!depth && !stencil)
+		glTexImage2D(GL_TEXTURE_2D, 0, attachment_type, screenWidth, screenHeight, 0, attachment_type, GL_UNSIGNED_BYTE, NULL);
+	else // Using both a stencil and depth test, needs special format arguments
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, screenWidth, screenHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return textureID;
+
 }
