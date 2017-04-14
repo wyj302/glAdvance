@@ -36,6 +36,22 @@ void lighting_system(GLFWwindow* window);
 void blending(GLFWwindow* window);
 void framebuffer(GLFWwindow* window);
 GLuint generateAttachmentTexture(GLboolean depth, GLboolean stencil);
+void RenderSceneFBO(Shader& planShader,
+	Shader& screenShader,
+	GLuint planVAO,
+	GLuint planTexture,
+	GLuint cubeVAO,
+	GLuint cubeTexture,
+	GLuint textureColorbuffer,
+	GLuint screenVAO,
+	GLuint fbo);
+void RenderScene(
+	Shader& planShader,
+	Shader& screenShader,
+	GLuint planVAO,
+	GLuint planTexture,
+	GLuint cubeVAO,
+	GLuint cubeTexture);
 
 void do_movement();
 void calcFPS(GLFWwindow* window, GLfloat title);
@@ -983,13 +999,13 @@ void framebuffer(GLFWwindow* window)
 {
 	GLfloat screenVertices[] = {
 		// Positions   // TexCoords
-		-1.0f, 1.0f, 0.0f, 1.0f,
-		-1.0f, -1.0f, 0.0f, 0.0f,
-		1.0f, -1.0f, 1.0f, 0.0f,
+		-0.3f, 1.0f, 0.0f, 1.0f,
+		-0.3f, 0.7f, 0.0f, 0.0f,
+		0.3f, 0.7f, 1.0f, 0.0f,
 
-		-1.0f, 1.0f, 0.0f, 1.0f,
-		1.0f, -1.0f, 1.0f, 0.0f,
-		1.0f, 1.0f, 1.0f, 1.0f
+		-0.3f, 1.0f, 0.0f, 1.0f,
+		0.3f, 0.7f, 1.0f, 0.0f,
+		0.3f, 1.0f, 1.0f, 1.0f
 	};
 
 	GLuint screenVAO, screenVBO;
@@ -1103,10 +1119,8 @@ void framebuffer(GLFWwindow* window)
 
 	//Œ∆¿Ì
 	GLuint planTexture = CreateTexture("metal.png");
-	GLuint cubeTexture = CreateTexture("container.jpg");
+	GLuint cubeTexture = CreateTexture("marble.jpg");
 	GLuint transTexture = CreateTexture("blending_transparent_window.png", true);
-
-	//planShader.use();
 
 	//fbo
 	GLuint fbo;
@@ -1134,7 +1148,6 @@ void framebuffer(GLFWwindow* window)
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
 	//—≠ª∑
 	while (!glfwWindowShouldClose(window))
 	{
@@ -1147,90 +1160,14 @@ void framebuffer(GLFWwindow* window)
 		lastFram = currentFrame;
 		calcFPS(window, lastFram);
 		
-
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		// Clear all attached buffers        
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // We're not using stencil buffer so why bother with clearing?
-
-		glEnable(GL_DEPTH_TEST);
-		// Set uniforms
-		planShader.use();
-		glm::mat4 model;
-		camera.Yaw += 180.0f; // Turn the camera's yaw 180 degrees around
-		camera.Pitch += 180.0f; // Turn the camera's pitch 180 degrees around
-		camera.ProcessMouseMovement(0, 0,  false); // Call this to make sure it updates its camera vectors (should probably create an update function ;)), Note that we removed the pitch constrains for this specific case in the camera class via a boolean (otherwise we can't reverse camera's pitch values)
-		glm::mat4 view = camera.GetViewMatrix();
-		camera.Yaw -= 180.0f; // Reset it back to what it was
-		camera.Pitch -= 180.0f;
-		camera.ProcessMouseMovement(0, 0); // Pitch constraint boolean is set to true as default.
-		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-
-		// Floor
-		glBindVertexArray(planVAO);
-		glBindTexture(GL_TEXTURE_2D, planTexture);
-		model = glm::mat4();
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glBindVertexArray(0);
-		// Cubes
-		glBindVertexArray(cubeVAO);
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		glBindVertexArray(0);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		// Clear all attached buffers
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // We're not using stencil buffer so why bother with clearing?
-
-		// Reset the camera uniform to its normal orientation
-		view = camera.GetViewMatrix();
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-
-		// Floor
-		glBindVertexArray(planVAO);
-		glBindTexture(GL_TEXTURE_2D, planTexture);
-		model = glm::mat4();
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glBindVertexArray(0);
-		// Cubes
-		glBindVertexArray(cubeVAO);
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		glBindVertexArray(0);
-
-		/////////////////////////////////////////////////////
-		// Now also draw the mirror quad with screen texture
-		// //////////////////////////////////////////////////
-		glDisable(GL_DEPTH_TEST); // We disable depth information so the mirror quad is always rendered on top
-		// Draw mirror
-		screenShader.use();
-		glBindVertexArray(screenVAO);
-		glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// Use the color attachment texture as the texture of the quad plane
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glBindVertexArray(0);
-
+		RenderScene(planShader, screenShader, planVAO, planTexture, cubeVAO, cubeTexture);
+		RenderSceneFBO(planShader, screenShader, planVAO, planTexture, cubeVAO,cubeTexture,textureColorbuffer, screenVAO, fbo);	
+		
 		glfwSwapBuffers(window);
 	}
 
 	// Clean up
-	glDeleteFramebuffers(1, &fbo);
+	//glDeleteFramebuffers(1, &fbo);
 
 }
 GLuint generateAttachmentTexture(GLboolean depth, GLboolean stencil)
@@ -1258,4 +1195,100 @@ GLuint generateAttachmentTexture(GLboolean depth, GLboolean stencil)
 
 	return textureID;
 
+}
+
+void RenderScene(Shader& planShader, Shader& screenShader, GLuint planVAO, GLuint planTexture, GLuint cubeVAO, GLuint cubeTexture)
+{
+	planShader.use();
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glm::mat4 model;
+	view = camera.GetViewMatrix();
+	glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
+
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	// Floor
+	glBindVertexArray(planVAO);
+	glBindTexture(GL_TEXTURE_2D, planTexture);
+	model = glm::mat4();
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+	// Cubes
+	glBindVertexArray(cubeVAO);
+	glBindTexture(GL_TEXTURE_2D, cubeTexture);
+	model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	model = glm::mat4();
+	model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);	
+
+}
+
+void RenderSceneFBO(Shader& planShader,
+					Shader& screenShader,
+					GLuint planVAO,
+					GLuint planTexture,
+					GLuint cubeVAO,
+					GLuint cubeTexture,
+					GLuint textureColorbuffer,
+					GLuint screenVAO,
+					GLuint fbo)
+{
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glEnable(GL_DEPTH_TEST);
+	planShader.use();
+	camera.Yaw += 180;
+	camera.Pitch += 180;
+
+	camera.ProcessMouseMovement(0, 0, false);
+	glm::mat4 view = camera.GetViewMatrix();
+	camera.Yaw -= 180;
+	camera.Pitch -= 180;
+	camera.ProcessMouseMovement(0, 0);
+	
+	glm::mat4 model;
+	
+	glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+	// Floor
+	glBindVertexArray(planVAO);
+	glBindTexture(GL_TEXTURE_2D, planTexture);
+	model = glm::mat4();
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+	// Cubes
+	glBindVertexArray(cubeVAO);
+	glBindTexture(GL_TEXTURE_2D, cubeTexture);
+	model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	model = glm::mat4();
+	model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+	glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Draw Screen
+	glDisable(GL_DEPTH_TEST);
+	screenShader.use();
+	glBindVertexArray(screenVAO);
+	glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
 }
