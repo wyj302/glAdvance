@@ -118,5 +118,11 @@
     <None Include="..\Debug\cubemap\cubemap.vs">
       <Filter>源文件\shaders\cubemap</Filter>
     </None>
+    <None Include="..\Debug\cubemap\cube.frag">
+      <Filter>源文件\shaders\cubemap</Filter>
+    </None>
+    <None Include="..\Debug\cubemap\cube.vs">
+      <Filter>源文件\shaders\cubemap</Filter>
+    </None>
   </ItemGroup>
 </Project>
