@@ -25,6 +25,9 @@
     <Filter Include="源文件\shaders\framebuffer">
       <UniqueIdentifier>{44a338e2-30e7-4e9f-863c-a0febc0916d6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\shaders\cubemap">
+      <UniqueIdentifier>{5baaa3a6-b592-4f64-b90f-9dcbce7b81ba}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -108,6 +111,12 @@
     </None>
     <None Include="..\Debug\framebuffer\framebuffer.vs">
       <Filter>源文件\shaders\framebuffer</Filter>
+    </None>
+    <None Include="..\Debug\cubemap\cubemap.frag">
+      <Filter>源文件\shaders\cubemap</Filter>
+    </None>
+    <None Include="..\Debug\cubemap\cubemap.vs">
+      <Filter>源文件\shaders\cubemap</Filter>
     </None>
   </ItemGroup>
 </Project>
