@@ -28,6 +28,9 @@
     <Filter Include="源文件\shaders\cubemap">
       <UniqueIdentifier>{5baaa3a6-b592-4f64-b90f-9dcbce7b81ba}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\shaders\advancedglsl">
+      <UniqueIdentifier>{65f5dec6-9de4-4563-ad07-2edda1ea5542}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -123,6 +126,12 @@
     </None>
     <None Include="..\Debug\cubemap\cube.vs">
       <Filter>源文件\shaders\cubemap</Filter>
+    </None>
+    <None Include="..\Debug\advancedglsl\advancedglsl.vs">
+      <Filter>源文件\shaders\advancedglsl</Filter>
+    </None>
+    <None Include="..\Debug\advancedglsl\advancedglsl.frag">
+      <Filter>源文件\shaders\advancedglsl</Filter>
     </None>
   </ItemGroup>
 </Project>

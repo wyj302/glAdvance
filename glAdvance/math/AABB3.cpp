@@ -2,6 +2,7 @@
 #include "Matrix.h"
 #include "Sphere.h"
 #include "Plane.h"
+#include <stdlib.h>
 
 #include <windows.h>
 #include <assert.h> 

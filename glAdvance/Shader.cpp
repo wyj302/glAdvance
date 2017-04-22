@@ -20,6 +20,14 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
 
 	vertexCode = vShaderStream.str();
 	fragmentCode = fShaderStream.str();
+	if (vertexCode.length() == 0)
+	{
+		std::cout << "vertex shader data error.";
+	}
+	if (fragmentCode.length() == 0)
+	{
+		std::cout << "fragment shader data error.";
+	}
 
 	const GLchar* vShaderCode = vertexCode.c_str();
 	const GLchar* fShaderCode = fragmentCode.c_str();
