@@ -38,6 +38,9 @@ void blending(GLFWwindow* window);
 void framebuffer(GLFWwindow* window);
 void cubemap(GLFWwindow* window);
 void advancedGLSL(GLFWwindow* window);
+void blinnPhone(GLFWwindow* window);
+void GammaCorrection(GLFWwindow* window);
+
 GLuint loadCubemapTexture(std::vector<const char*>& faces);
 
 void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -64,6 +67,9 @@ void RenderScene(
 void do_movement();
 void calcFPS(GLFWwindow* window, GLfloat title);
 bool keys[1024];
+bool keysPressed[1024];
+bool blinn = false;
+
 GLfloat deltaTime = 0.0f;
 GLfloat lastFram = 0.0f;
 GLfloat lastX = 400;
@@ -138,18 +144,173 @@ int main()
 	//blending(window);
 	//11 framebuffer
 	//framebuffer(window);
-
 	//12 cubemap
 	//cubemap(window);
-
 	//13 advanced glsl
-	advancedGLSL(window);
+	//advancedGLSL(window);
+
+	blinnPhone(window);
+	//GammaCorrection(window);
 
 	glfwTerminate();
 	
 	return 0;
 }
 
+void GammaCorrection(GLFWwindow* window)
+{
+	//顶点数据
+	//1 面
+	GLuint planVAO;
+	GLuint planVBO;
+	GLfloat quadVertices[] = {
+		// Positions        // Texture Coords
+		5.0f, -0.5f, 5.0f, 1.0f, 0.0f,
+		-5.0f, -0.5f, 5.0f, 0.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f, 0.0f, 1.0f,
+
+		5.0f, -0.5f, 5.0f, 1.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f, 0.0f, 1.0f,
+		5.0f, -0.5f, -5.0f, 1.0f, 1.0f
+	};
+	// Setup plane VAO
+	glGenVertexArrays(1, &planVAO);
+	glGenBuffers(1, &planVBO);
+	glBindVertexArray(planVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, planVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	//shader 
+	Shader shader("gammacorrection/gammacorrect.vs", "gammacorrection/gammacorrect.frag");
+
+	//texture
+	GLuint planeTexture = CreateTexture("wood.png");
+
+	while (!glfwWindowShouldClose(window))
+	{
+		//检查及调用事件
+		glfwPollEvents();
+		do_movement();
+
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//calc fps
+		GLfloat currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFram;
+		lastFram = currentFrame;
+		calcFPS(window, lastFram);
+
+		shader.use();
+		glm::mat4 model;
+		glm::mat4 view;
+		glm::mat4 projection;
+
+		view = camera.GetViewMatrix();
+		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth/screenHeight, 0.1f, 100.0f);
+
+		glUniformMatrix4fv(glGetUniformLocation(shader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(glGetUniformLocation(shader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(shader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+		glBindVertexArray(planVAO);
+		glBindTexture(GL_TEXTURE_2D,planeTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(0);
+
+		glfwSwapBuffers(window);
+	}
+
+
+}
+void blinnPhone(GLFWwindow* window)
+{
+
+	glm::vec3 lightPos = { 0.0f, 0.0f, 0.0f };
+
+	//顶点数据
+	//1 面
+	GLuint planVAO;
+	GLuint planVBO;
+
+	GLfloat planeVertices[] = {
+		// Positions          // Normals     // Texture Coords
+		8.0f, -0.5f, 8.0f, 0.0f, 1.0f, 0.0f, 5.0f, 0.0f,
+		-8.0f, -0.5f, 8.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+		-8.0f, -0.5f, -8.0f, 0.0f, 1.0f, 0.0f, 0.0f, 5.0f,
+		
+		8.0f, -0.5f, 8.0f, 0.0f, 1.0f, 0.0f, 5.0f, 0.0f,
+		-8.0f, -0.5f, -8.0f, 0.0f, 1.0f, 0.0f, 0.0f, 5.0f,
+		8.0f, -0.5f, -8.0f, 0.0f, 1.0f, 0.0f, 5.0f, 5.0f
+		 };
+	// Setup plane VAO
+	glGenVertexArrays(1, &planVAO);
+	glGenBuffers(1, &planVBO);
+	glBindVertexArray(planVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, planVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	//shader 
+	Shader shader("blinn/blinn.vs", "blinn/blinn.frag");
+
+	//texture
+	GLuint planeTexture = CreateTexture("wood.png");
+
+	while (!glfwWindowShouldClose(window))
+	{
+		//检查及调用事件
+		glfwPollEvents();
+		do_movement();
+
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//calc fps
+		GLfloat currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFram;
+		lastFram = currentFrame;
+		calcFPS(window, lastFram);
+
+		shader.use();
+		glm::mat4 model;
+		glm::mat4 view;
+		glm::mat4 projection;
+
+		view = camera.GetViewMatrix();
+		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / screenHeight, 0.1f, 100.0f);
+
+		glUniformMatrix4fv(glGetUniformLocation(shader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(glGetUniformLocation(shader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(shader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+		//light unform 
+		glUniform3fv(glGetUniformLocation(shader.program, "lightPos"), 1, &lightPos[0]);
+		glUniform3fv(glGetUniformLocation(shader.program, "viewPos"), 1, &camera.Position[0]);
+		glUniform1i(glGetUniformLocation(shader.program, "blinn"),  blinn);
+
+		glBindVertexArray(planVAO);
+		glBindTexture(GL_TEXTURE_2D, planeTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(0);
+
+		glfwSwapBuffers(window);
+	}
+}
 void advancedGLSL(GLFWwindow* window)
 {
 	glEnable(GL_PROGRAM_POINT_SIZE);
@@ -256,7 +417,6 @@ void advancedGLSL(GLFWwindow* window)
 		glfwSwapBuffers(window);
 	}
 }
-
 
 void cubemap(GLFWwindow* window)
 {
@@ -489,6 +649,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	else if (action == GLFW_RELEASE)
 	{
 		keys[key] = false;
+		keysPressed[key] = false;
 	}
 
 }
@@ -532,6 +693,11 @@ void do_movement()
 	else if (keys[GLFW_KEY_D])
 	{
 		camera.ProcessKeyboard(RIGHT, deltaTime);
+	}
+	if (keys[GLFW_KEY_B] && !keysPressed[GLFW_KEY_B])
+	{
+		blinn = !blinn;
+		keysPressed[GLFW_KEY_B] = true;
 	}
 }
 void calcFPS(GLFWwindow* window, GLfloat title)
@@ -992,8 +1158,8 @@ GLuint CreateTexture(const char* file, bool alpha)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	//设置纹理过滤方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	//加载纹理
 	int iwidth, iheight;

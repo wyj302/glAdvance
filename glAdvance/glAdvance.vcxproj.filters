@@ -31,6 +31,15 @@
     <Filter Include="源文件\shaders\advancedglsl">
       <UniqueIdentifier>{65f5dec6-9de4-4563-ad07-2edda1ea5542}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\shaders\gammacorrection">
+      <UniqueIdentifier>{651e5fb5-5a75-4f1a-a453-a08cce33a6b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\shaders\others">
+      <UniqueIdentifier>{9ba71ea7-3d7e-4f1a-9c38-c45bdaaa4d23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\shaders\blinn">
+      <UniqueIdentifier>{3b0e435e-e725-49d5-8e17-57e7654561a5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -82,27 +91,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Debug\shader.vs">
-      <Filter>源文件\shaders</Filter>
-    </None>
-    <None Include="..\Debug\shader.frag">
-      <Filter>源文件\shaders</Filter>
-    </None>
-    <None Include="..\Debug\lamp.frag">
-      <Filter>源文件\shaders</Filter>
-    </None>
-    <None Include="..\Debug\lamp.vs">
-      <Filter>源文件\shaders</Filter>
-    </None>
-    <None Include="..\Debug\object.frag">
-      <Filter>源文件\shaders</Filter>
-    </None>
-    <None Include="..\Debug\object.vs">
-      <Filter>源文件\shaders</Filter>
-    </None>
-    <None Include="..\Debug\signalcolor.frag">
-      <Filter>源文件\shaders</Filter>
-    </None>
     <None Include="..\Debug\blending\blending.frag">
       <Filter>源文件\shaders\blending</Filter>
     </None>
@@ -132,6 +120,39 @@
     </None>
     <None Include="..\Debug\advancedglsl\advancedglsl.frag">
       <Filter>源文件\shaders\advancedglsl</Filter>
+    </None>
+    <None Include="..\Debug\shader.vs">
+      <Filter>源文件\shaders\others</Filter>
+    </None>
+    <None Include="..\Debug\lamp.frag">
+      <Filter>源文件\shaders\others</Filter>
+    </None>
+    <None Include="..\Debug\lamp.vs">
+      <Filter>源文件\shaders\others</Filter>
+    </None>
+    <None Include="..\Debug\object.frag">
+      <Filter>源文件\shaders\others</Filter>
+    </None>
+    <None Include="..\Debug\object.vs">
+      <Filter>源文件\shaders\others</Filter>
+    </None>
+    <None Include="..\Debug\shader.frag">
+      <Filter>源文件\shaders\others</Filter>
+    </None>
+    <None Include="..\Debug\signalcolor.frag">
+      <Filter>源文件\shaders\others</Filter>
+    </None>
+    <None Include="..\Debug\gammacorrection\gammacorrect.frag">
+      <Filter>源文件\shaders\gammacorrection</Filter>
+    </None>
+    <None Include="..\Debug\gammacorrection\gammacorrect.vs">
+      <Filter>源文件\shaders\gammacorrection</Filter>
+    </None>
+    <None Include="..\Debug\blinn\blinn.frag">
+      <Filter>源文件\shaders\blinn</Filter>
+    </None>
+    <None Include="..\Debug\blinn\blinn.vs">
+      <Filter>源文件\shaders\blinn</Filter>
     </None>
   </ItemGroup>
 </Project>
