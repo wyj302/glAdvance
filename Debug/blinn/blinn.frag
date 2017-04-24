@@ -17,6 +17,7 @@ uniform sampler2D floorTexture;
 
 void main()
 {
+
 	vec3 color = texture(floorTexture, fs_in.TexCoords).rgb;
 
 	//ambient
@@ -45,4 +46,12 @@ void main()
 	vec3 specular = spec * vec3(0.3);
 
 	FragColor = vec4(ambient + diffuse + specular, 1.0);
+	
+	if(blinn)
+	{
+		float gamma = 2.2;
+		FragColor.rgb = pow(FragColor.rgb, vec3(1.0/gamma));
+	}
+
+	
 }

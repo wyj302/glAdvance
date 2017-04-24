@@ -231,7 +231,7 @@ void GammaCorrection(GLFWwindow* window)
 }
 void blinnPhone(GLFWwindow* window)
 {
-
+	//glEnable(GL_FRAMEBUFFER_SRGB);
 	glm::vec3 lightPos = { 0.0f, 0.0f, 0.0f };
 
 	//顶点数据
@@ -1164,7 +1164,7 @@ GLuint CreateTexture(const char* file, bool alpha)
 	//加载纹理
 	int iwidth, iheight;
 	unsigned char* image = SOIL_load_image(file, &iwidth, &iheight, 0, alpha ? SOIL_LOAD_RGBA : SOIL_LOAD_RGB);
-	glTexImage2D(GL_TEXTURE_2D, 0, alpha ? GL_RGBA : GL_RGB, iwidth, iheight, 0, alpha ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, image);
+	glTexImage2D(GL_TEXTURE_2D, 0, alpha ? GL_RGBA : GL_SRGB, iwidth, iheight, 0, alpha ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, image);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0);
