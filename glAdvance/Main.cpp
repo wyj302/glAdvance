@@ -141,7 +141,7 @@ int main()
 	//9 color
 	//lighting_system(window);
 	//10 blend
-	//blending(window);
+	blending(window);
 	//11 framebuffer
 	//framebuffer(window);
 	//12 cubemap
@@ -149,8 +149,8 @@ int main()
 	//13 advanced glsl
 	//advancedGLSL(window);
 
-	blinnPhone(window);
-	//GammaCorrection(window);
+	//blinnPhone(window);
+	//GammaCorrection(window);	
 
 	glfwTerminate();
 	
@@ -211,6 +211,9 @@ void GammaCorrection(GLFWwindow* window)
 		glm::mat4 model;
 		glm::mat4 view;
 		glm::mat4 projection;
+
+		glm::mat4 tran;
+		
 
 		view = camera.GetViewMatrix();
 		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth/screenHeight, 0.1f, 100.0f);
@@ -292,6 +295,18 @@ void blinnPhone(GLFWwindow* window)
 		glm::mat4 projection;
 
 		view = camera.GetViewMatrix();
+		float* ma = glm::value_ptr(view);
+
+		for (int i = 0; i < 16; ++i)
+		{			
+			std::cout << ma[i] << std::endl;			
+		}
+		float mm[16] = { 1.0f, 0.0f, 0.0f, 0.0f, 
+						 0.0f, 1.0f, 0.0f, 0.0f, 
+						 0.0f, 0.0f, 1.0f, 0.0f, 
+						 0.0f, 0.0f, 0.0f, 1.0f, };
+		glm::mat4 bb = glm::make_mat4(mm);
+
 		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / screenHeight, 0.1f, 100.0f);
 
 		glUniformMatrix4fv(glGetUniformLocation(shader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -1372,27 +1387,27 @@ void blending(GLFWwindow* window)
 	windows.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
 	windows.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
 
-	//fbo
-	GLuint fbo;
-	glGenFramebuffers(1, &fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-	//rbo
-	GLuint rbo;
-	glGenRenderbuffers(1, &rbo);
-	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-	//创建深度和模板缓冲对象
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
-	//为渲染缓冲分配内存后解绑渲染缓冲
-	glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-	//将渲染缓冲对象附加到帧缓冲深度和模板附件上
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER, rbo);
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		std::cout << "Framebuffer is not complete!" << std::endl;
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+// 	//fbo
+// 	GLuint fbo;
+// 	glGenFramebuffers(1, &fbo);
+// 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+// 
+// 	//rbo
+// 	GLuint rbo;
+// 	glGenRenderbuffers(1, &rbo);
+// 	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+// 	//创建深度和模板缓冲对象
+// 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+// 	//为渲染缓冲分配内存后解绑渲染缓冲
+// 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+// 
+// 	//将渲染缓冲对象附加到帧缓冲深度和模板附件上
+// 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER, rbo);
+// 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+// 	{
+// 		std::cout << "Framebuffer is not complete!" << std::endl;
+// 	}
+// 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//循环
 	while (!glfwWindowShouldClose(window))
@@ -1419,39 +1434,30 @@ void blending(GLFWwindow* window)
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));		
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-
-// 		view = glm::scale(view, glm::vec3(1.0f, -1.0f, 1.0f));
-// 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-
-		//upside down
-// 		glDisable(GL_CULL_FACE);
-// 		//cube0
-// 		model = glm::mat4();
-// 		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-// 		model = glm::translate(model, glm::vec3(0.0f, 1.0f, 0.0f));
-// 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-// 		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-// 		glBindVertexArray(cubeVAO);
-// 		glDrawArrays(GL_TRIANGLES, 0, 36);
-// 
-// 		//cube1
-// 		model = glm::mat4();
-// 		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-// 		model = glm::translate(model, glm::vec3(0.0f, 1.0f, 0.0f));
-// 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-// 		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-// 		glBindVertexArray(cubeVAO);
-// 		glDrawArrays(GL_TRIANGLES, 0, 36);
-// 		glBindVertexArray(0);
-
 		
 		//启用混合
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_CULL_FACE);
+		
 		
 		view = camera.GetViewMatrix();
-		view = glm::scale(view, glm::vec3(1.0f, 1.0f, 1.0f));
+		view = glm::scale(view, glm::vec3(1.0f, -1.0f, 1.0f));
  		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+		//cube0
+		model = glm::mat4();
+		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+		
+
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+
+		glEnable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
+		glBlendColor(0, 0, 0, 0.4f);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		//floor
 		model = glm::mat4();
@@ -1463,7 +1469,12 @@ void blending(GLFWwindow* window)
 
 		//关闭混合
 		glDisable(GL_BLEND);
-		
+		glEnable(GL_DEPTH_TEST);
+
+		planShader.use();
+		view = camera.GetViewMatrix();		
+		view = glm::scale(view, glm::vec3(1.0f, -1.0f, 1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		//cube0
 		model = glm::mat4();
 		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
@@ -1471,14 +1482,6 @@ void blending(GLFWwindow* window)
 		glBindTexture(GL_TEXTURE_2D, cubeTexture);
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-		//cube1
-		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		glBindVertexArray(0);
 
 
 // 		//window
