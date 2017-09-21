@@ -1253,8 +1253,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void blending(GLFWwindow* window)
 {
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+// 	glEnable(GL_BLEND);
+// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//顶点数据
 	//1 面
@@ -1435,27 +1435,21 @@ void blending(GLFWwindow* window)
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 		
-		//启用混合
-		glDisable(GL_CULL_FACE);
-		
-		
-		view = camera.GetViewMatrix();
-		view = glm::scale(view, glm::vec3(1.0f, -1.0f, 1.0f));
- 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
+		glDisable(GL_CULL_FACE);
 		//cube0
 		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-		
+		model = glm::translate(model, glm::vec3(2.0f, -1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, -1.0f, 1.0f));
 
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glBindTexture(GL_TEXTURE_2D, cubeTexture);
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-
-		glEnable(GL_BLEND);
+		//启用
 		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
 		glBlendColor(0, 0, 0, 0.4f);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -1467,15 +1461,12 @@ void blending(GLFWwindow* window)
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindVertexArray(0);
 
-		//关闭混合
-		glDisable(GL_BLEND);
-		glEnable(GL_DEPTH_TEST);
 
-		planShader.use();
-		view = camera.GetViewMatrix();		
-		view = glm::scale(view, glm::vec3(1.0f, -1.0f, 1.0f));
-		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-		//cube0
+		//关闭
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+
+		//cube1
 		model = glm::mat4();
 		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(glGetUniformLocation(planShader.program, "model"), 1, GL_FALSE, glm::value_ptr(model));
